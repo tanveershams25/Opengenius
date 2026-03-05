@@ -1,0 +1,88 @@
+{% extends "App/base.html" %}
+
+{% block title %}Select Character{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card p-4 mb-5">
+                <h2 class="text-center mb-4">Select Your Character</h2>
+                <p class="text-center text-muted mb-4">
+                    Choose a character and upload your voice sample to start the conversation.
+                    For HR role, please upload your resume as well.
+                </p>
+
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <h5 class="mb-3">Character Type:</h5>
+                        <div class="row g-3">
+                            {% for choice in form.character.field.choices %}
+                            <div class="col-md-6">
+                                <div class="card character-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="character-icon mb-3">
+                                            {% if choice.0 == 'HR' %}
+                                                <i class="fas fa-briefcase fa-3x text-primary"></i>
+                                            {% elif choice.0 == 'FATHER' %}
+                                                <i class="fas fa-user-tie fa-3x text-info"></i>
+                                            {% elif choice.0 == 'GIRLFRIEND' %}
+                                                <i class="fas fa-heart fa-3x text-danger"></i>
+                                            {% elif choice.0 == 'CELEBRITY' %}
+                                                <i class="fas fa-star fa-3x text-warning"></i>
+                                            {% endif %}
+                                        </div>
+                                        <h5>{{ choice.1 }}</h5>
+                                        <div class="form-check d-flex justify-content-center">
+                                            <input class="form-check-input" type="radio" 
+                                                   name="character" id="character_{{ choice.0 }}" 
+                                                   value="{{ choice.0 }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="voice_sample" class="form-label">
+                            <i class="fas fa-microphone me-2"></i>Voice Sample
+                        </label>
+                        <input type="file" class="form-control" id="voice_sample" 
+                               name="voice_sample" accept="audio/*" required>
+                        <div class="form-text">Record or upload a clear voice sample (MP3 or WAV)</div>
+                    </div>
+
+                    <div class="mb-4" id="resumeField" style="display: none;">
+                        <label for="resume" class="form-label">
+                            <i class="fas fa-file-alt me-2"></i>Resume (HR only)
+                        </label>
+                        <input type="file" class="form-control" id="resume" 
+                               name="resume" accept=".pdf,.doc,.docx">
+                        <div class="form-text">Upload your resume (PDF or Word)</div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-play me-2"></i>Start Conversation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show resume field only when HR is selected
+    document.querySelectorAll('input[name="character"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('resumeField').style.display = 
+                this.value === 'HR' ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}

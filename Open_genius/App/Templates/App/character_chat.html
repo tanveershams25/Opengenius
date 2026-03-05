@@ -1,0 +1,164 @@
+{% extends "App/base.html" %}
+
+{% block title %}Chat with {{ profile.get_character_type_display }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-comments me-2"></i>
+                            Chat with {{ profile.get_character_type_display }}
+                        </h4>
+                        <a href="{% url 'index' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Change Character
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <div class="chat-container p-3" style="height: 500px; overflow-y: auto;" id="chatWindow">
+                        {% for conversation in profile.conversation_set.all %}
+                        <div class="user-message mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-white-50">You</small>
+                                <small>{{ conversation.created_at|time:"H:i" }}</small>
+                            </div>
+                            <p class="mb-0">{{ conversation.user_input }}</p>
+                        </div>
+                        
+                        <div class="ai-message mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">{{ profile.get_character_type_display }}</small>
+                                <small>{{ conversation.created_at|time:"H:i" }}</small>
+                            </div>
+                            <p class="mb-2">{{ conversation.ai_response }}</p>
+                            <audio controls class="w-100">
+                                <source src="{{ conversation.response_audio.url }}" type="audio/mpeg">
+                            </audio>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form id="chatForm" method="post">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="text_input" 
+                                   name="text_input" placeholder="Type your message..." required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" id="recordBtn">
+                                <i class="fas fa-microphone me-1"></i> Record Voice
+                            </button>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="voiceResponseToggle" checked>
+                                <label class="form-check-label" for="voiceResponseToggle">Voice Response</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Scroll to bottom of chat window
+    const chatWindow = document.getElementById('chatWindow');
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    // Handle form submission with AJAX
+    document.getElementById('chatForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.response) {
+                // Append new messages to chat window
+                const now = new Date();
+                const timeString = now.getHours() + ':' + (now.getMinutes()<10?'0':'') + now.getMinutes();
+                
+                // User message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'user-message mb-3';
+                userMsg.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-white-50">You</small>
+                        <small>${timeString}</small>
+                    </div>
+                    <p class="mb-0">${formData.get('text_input')}</p>
+                `;
+                chatWindow.appendChild(userMsg);
+                
+                // AI message
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'ai-message mb-3';
+                aiMsg.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">{{ profile.get_character_type_display }}</small>
+                        <small>${timeString}</small>
+                    </div>
+                    <p class="mb-2">${data.response}</p>
+                    <audio controls class="w-100">
+                        <source src="${data.audio_url}" type="audio/mpeg">
+                    </audio>
+                `;
+                chatWindow.appendChild(aiMsg);
+                
+                // Clear input and scroll to bottom
+                document.getElementById('text_input').value = '';
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+    });
+
+    // Voice recording functionality
+    const recordBtn = document.getElementById('recordBtn');
+    let recorder, audioStream;
+    
+    recordBtn.addEventListener('click', function() {
+        if (this.textContent.includes('Stop')) {
+            stopRecording();
+            this.innerHTML = '<i class="fas fa-microphone me-1"></i> Record Voice';
+            this.classList.remove('btn-danger');
+            this.classList.add('btn-outline-secondary');
+        } else {
+            startRecording();
+            this.innerHTML = '<i class="fas fa-stop me-1"></i> Stop Recording';
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-danger');
+        }
+    });
+
+    async function startRecording() {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(audioStream);
+        recorder.start();
+    }
+
+    function stopRecording() {
+        recorder.stop();
+        audioStream.getAudioTracks().forEach(track => track.stop());
+    }
+</script>
+{% endblock %}
