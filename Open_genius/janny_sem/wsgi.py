@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Open_genius.janny_sem.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'janny_sem.settings')
 
 application = get_wsgi_application()
