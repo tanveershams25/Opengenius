@@ -5,3 +5,4 @@ gTTS==2.5.4
 SpeechRecognition==3.14.1
 python-dotenv==1.0.1
 requests==2.32.3
+whitenoise==6.7.0
